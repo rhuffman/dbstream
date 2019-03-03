@@ -19,7 +19,10 @@ import org.apache.commons.dbutils.ResultSetHandler;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Spliterator;
+import java.util.Spliterators;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 /**
  * Abstract class that simplify development of <code>ResultSetHandler</code>
@@ -43,7 +46,10 @@ public abstract class AbstractStreamHandler<T> implements ResultSetHandler<Strea
    */
   @Override
   public Stream<T> handle(ResultSet resultSet) throws SQLException {
-    return null;
+    ResultSetIterator<T> iterator = new ResultSetIterator<>(resultSet, this::handleRow);
+    return StreamSupport.stream(
+        Spliterators.spliteratorUnknownSize(iterator, Spliterator.ORDERED),
+        false);
   }
 
   /**

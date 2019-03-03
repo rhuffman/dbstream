@@ -30,8 +30,13 @@ import java.sql.SQLException;
 public class ArrayStreamHandler extends AbstractStreamHandler<Object[]> {
 
   @Override
-  protected Object[] handleRow(ResultSet rs) throws SQLException {
-    return new Object[0];
+  protected Object[] handleRow(ResultSet resultSet) throws SQLException {
+    int columnCount = resultSet.getMetaData().getColumnCount();
+    Object[] result = new Object[columnCount];
+    for (int i = 0; i < columnCount; i++) {
+      result[i] = resultSet.getObject(i+1);
+    }
+    return result;
   }
 
 }
