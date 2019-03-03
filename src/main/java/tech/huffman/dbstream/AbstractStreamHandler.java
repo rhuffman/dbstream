@@ -47,9 +47,10 @@ public abstract class AbstractStreamHandler<T> implements ResultSetHandler<Strea
   @Override
   public Stream<T> handle(ResultSet resultSet) throws SQLException {
     ResultSetIterator<T> iterator = new ResultSetIterator<>(resultSet, this::handleRow);
-    return StreamSupport.stream(
+    Stream stream = StreamSupport.stream(
         Spliterators.spliteratorUnknownSize(iterator, Spliterator.ORDERED),
         false);
+    return stream;
   }
 
   /**

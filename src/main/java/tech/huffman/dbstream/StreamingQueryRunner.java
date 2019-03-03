@@ -20,6 +20,9 @@ import org.apache.commons.dbutils.AbstractQueryRunner;
 import org.apache.commons.dbutils.ResultSetHandler;
 
 import javax.sql.DataSource;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -38,7 +41,37 @@ public class StreamingQueryRunner extends AbstractQueryRunner {
     PreparedStatement statement = connection.prepareStatement(sql);
     fillStatement(statement, args);
     ResultSet resultSet = statement.executeQuery();
-    return handler.handle(resultSet);
+    Stream<T> stream = handler.handle(resultSet);
+
+    //noinspection unchecked
+    return (Stream<T>) Proxy.newProxyInstance(
+        handler.getClass().getClassLoader(),
+        new Class[] { Stream.class },
+        new StreamProxyInvocationHandler(stream, connection, statement, resultSet));
+
+  }
+
+  static class StreamProxyInvocationHandler implements InvocationHandler {
+
+    private final Stream<?> stream;
+
+    private final AutoCloseable[] closeables;
+
+    StreamProxyInvocationHandler(Stream<?> stream, AutoCloseable...closeables) {
+      this.stream = stream;
+      this.closeables = closeables;
+    }
+
+    @Override
+    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+      // If the method is "close()", then close all the Closeables
+      if (method.getName().equals("close") && args == null) {
+        for (AutoCloseable closeable : closeables) {
+          closeable.close();
+        }
+      }
+      return method.invoke(stream, args);
+    }
   }
 
 }

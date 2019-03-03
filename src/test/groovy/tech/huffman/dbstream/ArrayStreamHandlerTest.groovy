@@ -58,8 +58,7 @@ class ArrayStreamHandlerTest extends Specification {
     Stream<Object[]> stream = streamingQueryRunner.query("SELECT i FROM Foo", null, handler)
 
     then:
-    stream.count() == 1
-//    stream.collect(Collectors.toList()) == [ [42] as Object[] ]
+    stream.collect(Collectors.toList()) == [ [42] as Object[] ]
 
     cleanup:
     stream?.close()
