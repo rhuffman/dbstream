@@ -16,7 +16,7 @@
 
 package tech.huffman.dbstream;
 
-import org.apache.commons.dbutils.AbstractQueryRunner;
+import org.apache.commons.dbutils.QueryRunner;
 import org.apache.commons.dbutils.ResultSetHandler;
 
 import javax.sql.DataSource;
@@ -29,13 +29,28 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.stream.Stream;
 
-public class StreamingQueryRunner extends AbstractQueryRunner {
+/**
+ * An extension of the Apache DbUtils QueryRunner that adds methods to produce Streams
+ * where each element of the stream is a row in a ResultSet. This takes advantage of
+ * database cursors (assuming the underlying JDBC ResultSet does) so the entire query
+ * result does not have to be read into memory.q
+ */
+public class StreamingQueryRunner extends QueryRunner {
 
   public StreamingQueryRunner(DataSource dataSource) {
     super(dataSource);
   }
 
-  public <T> Stream<T> query(String sql, Object[] args, ResultSetHandler<Stream<T>> handler)
+  /**
+   * Executes a Query and returns a Stream in which each element represents a row in the result.
+   * (This method cannot be named "query" because it would hide the corresponding methods in
+   * the superclass.)
+   *
+   * @param sql The SQL query to execute
+   * @param handler The ResultSetHandler that converts the ResultSet to a Stream
+   * @param args The arguments to pass to the query as prepared statement parameters
+   */
+  public <T> Stream<T> queryAsStream(String sql, ResultSetHandler<Stream<T>> handler, Object... args)
       throws SQLException {
     Connection connection = getDataSource().getConnection();
     PreparedStatement statement = connection.prepareStatement(sql);
@@ -46,18 +61,28 @@ public class StreamingQueryRunner extends AbstractQueryRunner {
     //noinspection unchecked
     return (Stream<T>) Proxy.newProxyInstance(
         handler.getClass().getClassLoader(),
-        new Class[] { Stream.class },
+        new Class[]{Stream.class},
         new StreamProxyInvocationHandler(stream, connection, statement, resultSet));
 
   }
 
+  /**
+   * An InvocationHandler for a Stream Proxy that delegates all methods to a given
+   * Stream and will close additional objects when the stream is closed.
+   */
   static class StreamProxyInvocationHandler implements InvocationHandler {
 
+    /**
+     * The Stream to which all methods are delegated
+     */
     private final Stream<?> stream;
 
+    /**
+     * Additional AutoCloseables that will be closed when the stream is closed
+     */
     private final AutoCloseable[] closeables;
 
-    StreamProxyInvocationHandler(Stream<?> stream, AutoCloseable...closeables) {
+    StreamProxyInvocationHandler(Stream<?> stream, AutoCloseable... closeables) {
       this.stream = stream;
       this.closeables = closeables;
     }

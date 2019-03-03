@@ -38,7 +38,7 @@ class ArrayStreamHandlerTest extends Specification {
     queryRunner.execute("CREATE TABLE Foo (i int)")
 
     when:
-    Stream<Object[]> stream = streamingQueryRunner.query("SELECT i FROM Foo", null, handler)
+    Stream<Object[]> stream = streamingQueryRunner.queryAsStream("SELECT i FROM Foo", handler, null)
 
     then:
     stream.count() == 0
@@ -55,7 +55,7 @@ class ArrayStreamHandlerTest extends Specification {
 
     when:
     ArrayStreamHandler handler = new ArrayStreamHandler()
-    Stream<Object[]> stream = streamingQueryRunner.query("SELECT i FROM Foo", null, handler)
+    Stream<Object[]> stream = streamingQueryRunner.queryAsStream("SELECT i FROM Foo", handler, null)
 
     then:
     stream.collect(Collectors.toList()) == [ [42] as Object[] ]

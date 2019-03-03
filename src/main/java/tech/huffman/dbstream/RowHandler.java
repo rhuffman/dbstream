@@ -19,8 +19,19 @@ package tech.huffman.dbstream;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+/**
+ * Converts the current row of a ResultSet to an object
+ *
+ * @param <T> The type of object to which the row will be converted
+ */
 interface RowHandler<T> {
 
+  /**
+   * Converts the current row of the ResultSet to an object
+   *
+   * @param resultSet The ResultSet to use
+   * @return The currente row converted to an object of type T
+   */
   T handleRow(ResultSet resultSet) throws SQLException;
 
 }

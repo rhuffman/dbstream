@@ -20,14 +20,35 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Iterator;
 
+/**
+ * An Iterator adapter for a JDBC ResultSet that will convert each row
+ * to an object
+ *
+ * @param <T> The type to which each row will be converted
+ */
 class ResultSetIterator<T> implements Iterator<T> {
 
+  /**
+   * The ResultSet to iterate over
+   */
   private final ResultSet resultSet;
 
+  /**
+   * The handler that converts each row of the ResultSet to type T
+   */
   private final RowHandler<T> rowHandler;
 
+  /**
+   * Whether or not the result set has more elements. There is a bit of a mismatch
+   * between how ResultSets and Iterators work, so we have to set this when the
+   * iterator is constructed, then set it each time we advance the ResultSet.
+   */
   private boolean hasNext;
 
+  /**
+   * Constructs an iterator over the result set that will use the specified
+   * RowHandler to convert each row to an object.
+   */
   ResultSetIterator(ResultSet resultSet, RowHandler<T> rowHandler) throws SQLException {
     this.resultSet = resultSet;
     this.rowHandler = rowHandler;

@@ -25,8 +25,8 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 /**
- * Abstract class that simplify development of <code>ResultSetHandler</code>
- * classes that convert <code>ResultSet</code> into <code>Stream</code>.
+ * Abstract class that simplifies the development of ResultSetHandler
+ * classes that convert ResultSets into Streams.
  *
  * @param <T> the target Stream generic type
  * @see org.apache.commons.dbutils.ResultSetHandler
@@ -34,29 +34,26 @@ import java.util.stream.StreamSupport;
 public abstract class AbstractStreamHandler<T> implements ResultSetHandler<Stream<T>> {
 
   /**
-   * Whole <code>ResultSet</code> handler. It produces a <code>Stream</code> as
-   * the result. To convert individual rows into Java objects it uses  the
-   * <code>handleRow(ResultSet)</code> method.
+   * Whole ResultSet handler. It produces a Stream as the result. To convert
+   * individual rows into Java objects it uses  the handleRow(ResultSet) method.
    *
-   * @param resultSet The <code>ResultSet</code> to process.
-   * @return a <code>Stream</code> of all rows in the result set, each row
-   * converted to T
+   * @param resultSet The ResultSet to process.
+   * @return a Stream of all rows in the result set, each row converted to T
    * @throws SQLException error occurs
    * @see #handleRow(ResultSet)
    */
   @Override
   public Stream<T> handle(ResultSet resultSet) throws SQLException {
     ResultSetIterator<T> iterator = new ResultSetIterator<>(resultSet, this::handleRow);
-    Stream stream = StreamSupport.stream(
+    return StreamSupport.stream(
         Spliterators.spliteratorUnknownSize(iterator, Spliterator.ORDERED),
         false);
-    return stream;
   }
 
   /**
    * Row handler. Method converts current row into some Java object.
    *
-   * @param rs <code>ResultSet</code> to process.
+   * @param rs ResultSet to process.
    * @return row processing result
    * @throws SQLException error occurs
    */

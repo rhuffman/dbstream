@@ -20,9 +20,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 /**
- * <code>ResultSetHandler</code> implementation that converts the
- * <code>ResultSet</code> into a <code>Stream</code> of <code>Object[]</code>s.
- * This class is thread safe.
+ * ResultSetHandler implementation that converts the ResultSet into a Stream of Object[]s.
  *
  * @see org.apache.commons.dbutils.ResultSetHandler
  */
