@@ -18,20 +18,36 @@ package tech.huffman.dbstream;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Iterator;
 
-/**
- * <code>ResultSetHandler</code> implementation that converts the
- * <code>ResultSet</code> into a <code>Stream</code> of <code>Object[]</code>s.
- * This class is thread safe.
- *
- * @see org.apache.commons.dbutils.ResultSetHandler
- */
+class ResultSetIterator<T> implements Iterator<T> {
 
-public class ArrayStreamHandler extends AbstractStreamHandler<Object[]> {
+  private final ResultSet resultSet;
+
+  private final RowHandler<T> rowHandler;
+
+  private boolean hasNext;
+
+  ResultSetIterator(ResultSet resultSet, RowHandler<T> rowHandler) throws SQLException {
+    this.resultSet = resultSet;
+    this.rowHandler = rowHandler;
+    hasNext = resultSet.next();
+  }
 
   @Override
-  protected Object[] handleRow(ResultSet rs) throws SQLException {
-    return new Object[0];
+  public boolean hasNext() {
+      return hasNext;
+  }
+
+  @Override
+  public T next() {
+    try {
+      T result = rowHandler.handleRow(resultSet);
+      hasNext = resultSet.next();
+      return result;
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
+    }
   }
 
 }

@@ -14,24 +14,23 @@
  * limitations under the License.
  */
 
-package tech.huffman.dbstream;
+package tech.huffman.dbstream
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import org.h2.jdbcx.JdbcDataSource
 
-/**
- * <code>ResultSetHandler</code> implementation that converts the
- * <code>ResultSet</code> into a <code>Stream</code> of <code>Object[]</code>s.
- * This class is thread safe.
- *
- * @see org.apache.commons.dbutils.ResultSetHandler
- */
+import javax.sql.DataSource
 
-public class ArrayStreamHandler extends AbstractStreamHandler<Object[]> {
+class DbTestUtility {
 
-  @Override
-  protected Object[] handleRow(ResultSet rs) throws SQLException {
-    return new Object[0];
+  DataSource dataSource = createDataSource()
+
+  DataSource createDataSource() {
+    def dataSource = new JdbcDataSource()
+    dataSource.setURL("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1")
+    dataSource.setUser("sa")
+    dataSource.setPassword("sa")
+    return dataSource
   }
+
 
 }

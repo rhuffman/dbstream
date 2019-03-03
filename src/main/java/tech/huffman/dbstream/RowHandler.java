@@ -19,19 +19,8 @@ package tech.huffman.dbstream;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-/**
- * <code>ResultSetHandler</code> implementation that converts the
- * <code>ResultSet</code> into a <code>Stream</code> of <code>Object[]</code>s.
- * This class is thread safe.
- *
- * @see org.apache.commons.dbutils.ResultSetHandler
- */
+interface RowHandler<T> {
 
-public class ArrayStreamHandler extends AbstractStreamHandler<Object[]> {
-
-  @Override
-  protected Object[] handleRow(ResultSet rs) throws SQLException {
-    return new Object[0];
-  }
+  T handleRow(ResultSet resultSet) throws SQLException;
 
 }
