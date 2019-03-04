@@ -20,19 +20,19 @@ import org.apache.commons.dbutils.BasicRowProcessor;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Map;
 
 /**
- * ResultSetHandler implementation that converts the ResultSet into a Stream of Object[]s.
+ * ResultSetHandler implementation that converts the ResultSet into a Stream of Map<String, Object>.
+ * There is one map for each row in the ResultSet. The keys are the column names (as returned by
  *
  * @see org.apache.commons.dbutils.ResultSetHandler
  */
-public class ArrayStreamingHandler extends StreamingResultSetHandler<Object[]> {
+public class MapStreamingHandler extends StreamingResultSetHandler<Map<String,Object>> {
 
-  private static BasicRowProcessor rowProcessor = new BasicRowProcessor();
-
+  private static final BasicRowProcessor rowProcessor = new BasicRowProcessor();
   @Override
-  protected Object[] handleRow(ResultSet resultSet) throws SQLException {
-    return rowProcessor.toArray(resultSet);
+  protected Map<String, Object> handleRow(ResultSet resultSet) throws SQLException {
+    return rowProcessor.toMap(resultSet);
   }
-
 }

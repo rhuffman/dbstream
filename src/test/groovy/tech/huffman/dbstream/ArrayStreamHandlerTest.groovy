@@ -55,7 +55,29 @@ class ArrayStreamHandlerTest extends Specification {
     Stream<Object[]> stream = queryRunner.queryAsStream("SELECT i FROM Foo", handler, null)
 
     then:
-    stream.collect(Collectors.toList()) == [ [42] as Object[] ]
+    stream.collect(Collectors.toList()) == [[42] as Object[]]
+
+    cleanup:
+    stream?.close()
+    queryRunner.execute("DROP TABLE Foo")
+  }
+
+  def "test ResultSet with multiple rows"() {
+    given:
+    queryRunner.execute("CREATE TABLE Foo (i int)")
+    queryRunner.execute("INSERT INTO FOO VALUES (?)", [42] as Object[])
+    queryRunner.execute("INSERT INTO FOO VALUES (?)", [84] as Object[])
+    queryRunner.execute("INSERT INTO FOO VALUES (?)", [92] as Object[])
+
+    when:
+    ArrayStreamingHandler handler = new ArrayStreamingHandler()
+    Stream<Object[]> stream = queryRunner.queryAsStream("SELECT i FROM Foo", handler, null)
+
+    then:
+    stream.collect(Collectors.toList()) == [
+        [42] as Object[],
+        [84] as Object[],
+        [92] as Object[]]
 
     cleanup:
     stream?.close()
