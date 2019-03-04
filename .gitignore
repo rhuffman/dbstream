@@ -5,6 +5,7 @@
 build
 
 # Ignore Intellij project files
+.idea
 dbstream.iml
 dbstream.ipr
 dbstream.iws
