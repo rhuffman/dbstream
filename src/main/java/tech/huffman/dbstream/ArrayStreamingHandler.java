@@ -16,6 +16,8 @@
 
 package tech.huffman.dbstream;
 
+import org.apache.commons.dbutils.BasicRowProcessor;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
@@ -27,14 +29,11 @@ import java.sql.SQLException;
 
 public class ArrayStreamingHandler extends StreamingResultSetHandler<Object[]> {
 
+  private static BasicRowProcessor rowProcessor = new BasicRowProcessor();
+
   @Override
   protected Object[] handleRow(ResultSet resultSet) throws SQLException {
-    int columnCount = resultSet.getMetaData().getColumnCount();
-    Object[] result = new Object[columnCount];
-    for (int i = 0; i < columnCount; i++) {
-      result[i] = resultSet.getObject(i+1);
-    }
-    return result;
+    return rowProcessor.toArray(resultSet);
   }
 
 }
