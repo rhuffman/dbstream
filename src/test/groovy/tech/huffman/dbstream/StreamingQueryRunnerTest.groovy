@@ -38,6 +38,9 @@ class StreamingQueryRunnerTest extends Specification {
   @Shared
   def mapHandler = new MapStreamingHandler()
 
+  @Shared
+  def beanHandler = new BeanStreamingHandler<>(Animal)
+
   def setup() {
     queryRunner.execute("CREATE TABLE Foo (NAME varchar, NUMBER int)")
   }
@@ -49,7 +52,7 @@ class StreamingQueryRunnerTest extends Specification {
   @Unroll
   def "test with empty result set: #handlerType"() {
     when:
-    def stream = queryRunner.queryAsStream("SELECT NUMBER FROM Foo", handler)
+    def stream = queryRunner.queryAsStream("SELECT NAME, NUMBER FROM Foo", handler)
 
     then:
     stream.count() == 0
@@ -61,6 +64,7 @@ class StreamingQueryRunnerTest extends Specification {
     handler      | _
     arrayHandler | _
     mapHandler   | _
+    beanHandler  | _
 
     handlerType = handler.class.simpleName
   }
@@ -83,6 +87,7 @@ class StreamingQueryRunnerTest extends Specification {
     handler      | expected
     arrayHandler | ['Pig', 42] as Object[]
     mapHandler   | [NAME: 'Pig', NUMBER: 42]
+    beanHandler  | new Animal('Pig', 42)
 
     handlerType = handler.class.simpleName
   }
@@ -107,6 +112,7 @@ class StreamingQueryRunnerTest extends Specification {
     handler      | expected
     arrayHandler | [['Pig', 42] as Object[], ['Cow', 84] as Object[], ['Dog', 92] as Object[]]
     mapHandler   | [[NAME: 'Pig', NUMBER: 42], [NAME: 'Cow', NUMBER: 84], [NAME: 'Dog', NUMBER: 92]]
+    beanHandler  | [new Animal('Pig', 42), new Animal('Cow', 84), new Animal('Dog', 92)]
 
     handlerType = handler.class.simpleName
   }
@@ -143,6 +149,65 @@ class StreamingQueryRunnerTest extends Specification {
     cleanup:
     stream?.close()
     connection?.close()
+  }
+
+  static class Animal {
+
+    String name
+
+    int number
+
+    Animal() {
+    }
+
+    Animal(String name, int number) {
+      this.name = name
+      this.number = number
+    }
+
+    String getName() {
+      return name
+    }
+
+    void setName(String name) {
+      this.name = name
+    }
+
+    int getCount() {
+      return number
+    }
+
+    void setCount(int number) {
+      this.number = number
+    }
+
+    boolean equals(o) {
+      if (this.is(o)) return true
+      if (getClass() != o.class) return false
+
+      Animal animal = (Animal) o
+
+      if (number != animal.number) return false
+      if (name != animal.name) return false
+
+      return true
+    }
+
+    int hashCode() {
+      int result
+      result = (name != null ? name.hashCode() : 0)
+      result = 31 * result + number
+      return result
+    }
+
+
+    @Override
+    String toString() {
+      return "Animal{" +
+          "name='" + name + '\'' +
+          ", number=" + number +
+          '}';
+    }
   }
 
 }
