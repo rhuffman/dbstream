@@ -87,7 +87,7 @@ class StreamingQueryRunnerTest extends Specification {
     handler      | expected
     arrayHandler | ['Pig', 42] as Object[]
     mapHandler   | [NAME: 'Pig', NUMBER: 42]
-    beanHandler  | new Animal('Pig', 42)
+    beanHandler  | new Animal(name: 'Pig', number: 42)
 
     handlerType = handler.class.simpleName
   }
@@ -112,7 +112,9 @@ class StreamingQueryRunnerTest extends Specification {
     handler      | expected
     arrayHandler | [['Pig', 42] as Object[], ['Cow', 84] as Object[], ['Dog', 92] as Object[]]
     mapHandler   | [[NAME: 'Pig', NUMBER: 42], [NAME: 'Cow', NUMBER: 84], [NAME: 'Dog', NUMBER: 92]]
-    beanHandler  | [new Animal('Pig', 42), new Animal('Cow', 84), new Animal('Dog', 92)]
+    beanHandler  | [new Animal(name: 'Pig', number: 42),
+                    new Animal(name: 'Cow', number: 84),
+                    new Animal(name: 'Dog', number: 92)]
 
     handlerType = handler.class.simpleName
   }
@@ -156,30 +158,6 @@ class StreamingQueryRunnerTest extends Specification {
     String name
 
     int number
-
-    Animal() {
-    }
-
-    Animal(String name, int number) {
-      this.name = name
-      this.number = number
-    }
-
-    String getName() {
-      return name
-    }
-
-    void setName(String name) {
-      this.name = name
-    }
-
-    int getCount() {
-      return number
-    }
-
-    void setCount(int number) {
-      this.number = number
-    }
 
     boolean equals(o) {
       if (this.is(o)) return true

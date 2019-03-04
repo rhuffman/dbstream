@@ -52,24 +52,9 @@ class BeanStreamingHandlerTest extends Specification {
 
   static class Animal {
 
-    private String name
+    String name
 
-    private int count
+    int count
 
-    String getName() {
-      return name
-    }
-
-    void setName(String name) {
-      this.name = name
-    }
-
-    int getCount() {
-      return count
-    }
-
-    void setCount(int count) {
-      this.count = count
-    }
   }
 }
