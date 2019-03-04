@@ -46,7 +46,7 @@ public abstract class StreamingResultSetHandler<T> implements ResultSetHandler<S
   public Stream<T> handle(ResultSet resultSet) throws SQLException {
     ResultSetIterator<T> iterator = new ResultSetIterator<>(resultSet, this::handleRow);
     return StreamSupport.stream(
-        Spliterators.spliteratorUnknownSize(iterator, Spliterator.ORDERED),
+        Spliterators.spliteratorUnknownSize(iterator, Spliterator.ORDERED | Spliterator.IMMUTABLE),
         false);
   }
 

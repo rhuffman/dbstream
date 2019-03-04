@@ -21,6 +21,11 @@ import org.apache.commons.dbutils.BasicRowProcessor;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+/**
+ * ResultSetHandler implementation that converts the ResultSet into a Stream of Object[]s.
+ *
+ * @see org.apache.commons.dbutils.ResultSetHandler
+ */
 public class BeanStreamingHandler<T> extends StreamingResultSetHandler<T> {
 
   private static final BasicRowProcessor rowProcessor = new BasicRowProcessor();
