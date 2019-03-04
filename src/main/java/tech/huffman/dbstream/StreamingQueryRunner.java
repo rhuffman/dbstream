@@ -31,9 +31,9 @@ import java.util.stream.Stream;
 
 /**
  * An extension of the Apache DbUtils QueryRunner that adds methods to produce Streams
- * where each element of the stream is a row in a ResultSet. This takes advantage of
- * database cursors (assuming the underlying JDBC ResultSet does) so the entire query
- * result does not have to be read into memory.q
+ * where each element of the stream is constructed from a row in a ResultSet. This takes
+ * advantage of database cursors (assuming the underlying JDBC ResultSet does) so the
+ * entire query result does not have to be read into memory.
  */
 public class StreamingQueryRunner extends QueryRunner {
 
@@ -50,7 +50,7 @@ public class StreamingQueryRunner extends QueryRunner {
    * @param handler The ResultSetHandler that converts the ResultSet to a Stream
    * @param args The arguments to pass to the query as prepared statement parameters
    */
-  public <T> Stream<T> queryAsStream(String sql, ResultSetHandler<Stream<T>> handler, Object... args)
+  public <T> Stream<T> queryAsStream(String sql, StreamingResultSetHandler<T> handler, Object... args)
       throws SQLException {
     Connection connection = getDataSource().getConnection();
     PreparedStatement statement = connection.prepareStatement(sql);

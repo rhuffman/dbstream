@@ -25,7 +25,7 @@ import java.sql.SQLException;
  * @see org.apache.commons.dbutils.ResultSetHandler
  */
 
-public class ArrayStreamHandler extends AbstractStreamHandler<Object[]> {
+public class ArrayStreamingHandler extends StreamingResultSetHandler<Object[]> {
 
   @Override
   protected Object[] handleRow(ResultSet resultSet) throws SQLException {

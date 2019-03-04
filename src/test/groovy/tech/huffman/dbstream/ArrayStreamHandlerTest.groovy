@@ -16,7 +16,6 @@
 
 package tech.huffman.dbstream
 
-import org.apache.commons.dbutils.QueryRunner
 import spock.lang.Specification
 
 import javax.sql.DataSource
@@ -27,18 +26,16 @@ class ArrayStreamHandlerTest extends Specification {
 
   DataSource dataSource = new DbTestUtility().createDataSource()
 
-  QueryRunner queryRunner = new QueryRunner(dataSource)
+  StreamingQueryRunner queryRunner = new StreamingQueryRunner(dataSource)
 
-  StreamingQueryRunner streamingQueryRunner = new StreamingQueryRunner(dataSource)
-
-  ArrayStreamHandler handler = new ArrayStreamHandler()
+  ArrayStreamingHandler handler = new ArrayStreamingHandler()
 
   def "test empty ResultSet"() {
     given:
     queryRunner.execute("CREATE TABLE Foo (i int)")
 
     when:
-    Stream<Object[]> stream = streamingQueryRunner.queryAsStream("SELECT i FROM Foo", handler, null)
+    Stream<Object[]> stream = queryRunner.queryAsStream("SELECT i FROM Foo", handler, null)
 
     then:
     stream.count() == 0
@@ -54,8 +51,8 @@ class ArrayStreamHandlerTest extends Specification {
     queryRunner.execute("INSERT INTO FOO VALUES (?)", [42] as Object[])
 
     when:
-    ArrayStreamHandler handler = new ArrayStreamHandler()
-    Stream<Object[]> stream = streamingQueryRunner.queryAsStream("SELECT i FROM Foo", handler, null)
+    ArrayStreamingHandler handler = new ArrayStreamingHandler()
+    Stream<Object[]> stream = queryRunner.queryAsStream("SELECT i FROM Foo", handler, null)
 
     then:
     stream.collect(Collectors.toList()) == [ [42] as Object[] ]

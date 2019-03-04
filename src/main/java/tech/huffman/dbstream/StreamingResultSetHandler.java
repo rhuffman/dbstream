@@ -31,7 +31,7 @@ import java.util.stream.StreamSupport;
  * @param <T> the target Stream generic type
  * @see org.apache.commons.dbutils.ResultSetHandler
  */
-public abstract class AbstractStreamHandler<T> implements ResultSetHandler<Stream<T>> {
+public abstract class StreamingResultSetHandler<T> implements ResultSetHandler<Stream<T>> {
 
   /**
    * Whole ResultSet handler. It produces a Stream as the result. To convert
