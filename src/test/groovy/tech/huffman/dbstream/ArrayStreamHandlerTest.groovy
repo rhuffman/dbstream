@@ -19,6 +19,10 @@ package tech.huffman.dbstream
 import spock.lang.Specification
 
 import javax.sql.DataSource
+import java.sql.Connection
+import java.sql.ResultSet
+import java.sql.ResultSetMetaData
+import java.sql.Statement
 import java.util.stream.Collectors
 import java.util.stream.Stream
 
@@ -30,58 +34,24 @@ class ArrayStreamHandlerTest extends Specification {
 
   ArrayStreamingHandler handler = new ArrayStreamingHandler()
 
-  def "test empty ResultSet"() {
-    given:
-    queryRunner.execute("CREATE TABLE Foo (i int)")
+  def setup() {
+    queryRunner.execute("CREATE TABLE Foo (NAME VARCHAR, COUNT INT)")
+  }
 
-    when:
-    Stream<Object[]> stream = queryRunner.queryAsStream("SELECT i FROM Foo", handler, null)
-
-    then:
-    stream.count() == 0
-
-    cleanup:
-    stream?.close()
+  def cleanup() {
     queryRunner.execute("DROP TABLE Foo")
   }
 
-  def "test ResultSet with one row"() {
+  def "test handleRow"() {
     given:
-    queryRunner.execute("CREATE TABLE Foo (i int)")
-    queryRunner.execute("INSERT INTO FOO VALUES (?)", [42] as Object[])
+    queryRunner.execute("INSERT INTO Foo VALUES (?, ?)", "Pig", 42)
+    def connection = dataSource.getConnection()
+    def statement = connection.createStatement()
+    def resultSet = statement.executeQuery("SELECT * FROM Foo")
 
-    when:
-    ArrayStreamingHandler handler = new ArrayStreamingHandler()
-    Stream<Object[]> stream = queryRunner.queryAsStream("SELECT i FROM Foo", handler, null)
-
-    then:
-    stream.collect(Collectors.toList()) == [[42] as Object[]]
-
-    cleanup:
-    stream?.close()
-    queryRunner.execute("DROP TABLE Foo")
-  }
-
-  def "test ResultSet with multiple rows"() {
-    given:
-    queryRunner.execute("CREATE TABLE Foo (i int)")
-    queryRunner.execute("INSERT INTO FOO VALUES (?)", [42] as Object[])
-    queryRunner.execute("INSERT INTO FOO VALUES (?)", [84] as Object[])
-    queryRunner.execute("INSERT INTO FOO VALUES (?)", [92] as Object[])
-
-    when:
-    ArrayStreamingHandler handler = new ArrayStreamingHandler()
-    Stream<Object[]> stream = queryRunner.queryAsStream("SELECT i FROM Foo", handler, null)
-
-    then:
-    stream.collect(Collectors.toList()) == [
-        [42] as Object[],
-        [84] as Object[],
-        [92] as Object[]]
-
-    cleanup:
-    stream?.close()
-    queryRunner.execute("DROP TABLE Foo")
+    expect:
+    resultSet.next()
+    handler.handleRow(resultSet) == ["Pig", 42] as Object[]
   }
 
 }

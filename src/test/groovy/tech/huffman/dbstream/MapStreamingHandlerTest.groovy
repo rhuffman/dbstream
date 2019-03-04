@@ -19,8 +19,6 @@ package tech.huffman.dbstream
 import spock.lang.Specification
 
 import javax.sql.DataSource
-import java.util.stream.Collectors
-import java.util.stream.Stream
 
 class MapStreamingHandlerTest extends Specification {
 
@@ -38,51 +36,16 @@ class MapStreamingHandlerTest extends Specification {
     queryRunner.execute("DROP TABLE Foo")
   }
 
-  def "test empty ResultSet"() {
-    when:
-    Stream<Map<String, Object>> stream = queryRunner.queryAsStream(
-        "SELECT NAME, COUNT FROM Foo", handler, null)
-
-    then:
-    stream.count() == 0
-
-    cleanup:
-    stream?.close()
-  }
-
-  def "test ResultSet with one row"() {
+  def "test handleRow"() {
     given:
-    queryRunner.execute("INSERT INTO Foo VALUES (?, ?)", ["Pig", 3] as Object[])
+    queryRunner.execute("INSERT INTO Foo VALUES (?, ?)", "Pig", 42)
+    def connection = dataSource.getConnection()
+    def statement = connection.createStatement()
+    def resultSet = statement.executeQuery("SELECT * FROM Foo")
 
-    when:
-    MapStreamingHandler handler = new MapStreamingHandler()
-    Stream<Map<String, Object>> stream = queryRunner.queryAsStream(
-        "SELECT NAME, COUNT FROM Foo", handler, null)
-
-    then:
-    stream.collect(Collectors.toList()) == [[NAME: 'Pig', COUNT: 3]]
-
-    cleanup:
-    stream?.close()
+    expect:
+    resultSet.next()
+    handler.handleRow(resultSet) == [NAME: "Pig", COUNT: 42]
   }
 
-  def "test ResultSet with multiple rows"() {
-    given:
-    queryRunner.execute("INSERT INTO Foo VALUES (?, ?)", ["Pig", 3] as Object[])
-    queryRunner.execute("INSERT INTO Foo VALUES (?, ?)", ["Cow", 4] as Object[])
-    queryRunner.execute("INSERT INTO Foo VALUES (?, ?)", ["Dog", 2] as Object[])
-
-    when:
-    MapStreamingHandler handler = new MapStreamingHandler()
-    Stream<Map<String, Object>> stream = queryRunner.queryAsStream(
-        "SELECT NAME, COUNT FROM Foo", handler, null)
-
-    then:
-    stream.collect(Collectors.toList()) == [[NAME: 'Pig', COUNT: 3],
-                                            [NAME: 'Cow', COUNT: 4],
-                                            [NAME: 'Dog', COUNT: 2]]
-
-    cleanup:
-    stream?.close()
-  }
 }

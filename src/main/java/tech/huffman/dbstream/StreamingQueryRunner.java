@@ -17,7 +17,6 @@
 package tech.huffman.dbstream;
 
 import org.apache.commons.dbutils.QueryRunner;
-import org.apache.commons.dbutils.ResultSetHandler;
 
 import javax.sql.DataSource;
 import java.lang.reflect.InvocationHandler;
@@ -46,24 +45,62 @@ public class StreamingQueryRunner extends QueryRunner {
    * (This method cannot be named "query" because it would hide the corresponding methods in
    * the superclass.)
    *
-   * @param sql The SQL query to execute
+   * @param sql     The SQL query to execute
    * @param handler The ResultSetHandler that converts the ResultSet to a Stream
-   * @param args The arguments to pass to the query as prepared statement parameters
+   * @param args    The arguments to pass to the query as prepared statement parameters
    */
   public <T> Stream<T> queryAsStream(String sql, StreamingResultSetHandler<T> handler, Object... args)
       throws SQLException {
     Connection connection = getDataSource().getConnection();
+    return query(connection, true, sql, handler, args);
+  }
+
+  /**
+   * Executes a Query and returns a Stream in which each element represents a row in the result.
+   * (This method cannot be named "query" because it would hide the corresponding methods in
+   * the superclass.)
+   *
+   * @param connection The database Connection to use
+   * @param sql        The SQL query to execute
+   * @param handler    The ResultSetHandler that converts the ResultSet to a Stream
+   * @param args       The arguments to pass to the query as prepared statement parameters
+   */
+  public <T> Stream<T> queryAsStream(
+      Connection connection, String sql, StreamingResultSetHandler<T> handler, Object... args)
+      throws SQLException {
+    return query(connection, false, sql, handler, args);
+  }
+
+  /**
+   * Executes a Query and returns a Stream in which each element represents a row in the result.
+   *
+   * @param connection      The database Connection to use
+   * @param closeConnection Whether or not the connection should be closed when the stream is closed
+   * @param sql             The SQL query to execute
+   * @param handler         The ResultSetHandler that converts the ResultSet to a Stream
+   * @param args            The arguments to pass to the query as prepared statement parameters
+   */
+  private <T> Stream<T> query(
+      Connection connection,
+      boolean closeConnection,
+      String sql,
+      StreamingResultSetHandler<T> handler,
+      Object... args)
+      throws SQLException {
     PreparedStatement statement = connection.prepareStatement(sql);
     fillStatement(statement, args);
     ResultSet resultSet = statement.executeQuery();
     Stream<T> stream = handler.handle(resultSet);
 
+    StreamProxyInvocationHandler invocationHandler = closeConnection ?
+        new StreamProxyInvocationHandler(stream, connection, statement, resultSet) :
+        new StreamProxyInvocationHandler(stream, statement, resultSet);
+
     //noinspection unchecked
     return (Stream<T>) Proxy.newProxyInstance(
         handler.getClass().getClassLoader(),
         new Class[]{Stream.class},
-        new StreamProxyInvocationHandler(stream, connection, statement, resultSet));
-
+        invocationHandler);
   }
 
   /**
@@ -97,6 +134,7 @@ public class StreamingQueryRunner extends QueryRunner {
       }
       return method.invoke(stream, args);
     }
+
   }
 
 }
