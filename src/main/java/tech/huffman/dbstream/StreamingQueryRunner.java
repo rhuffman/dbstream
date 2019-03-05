@@ -128,11 +128,24 @@ public class StreamingQueryRunner extends QueryRunner {
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
       // If the method is "close()", then close all the Closeables
       if (method.getName().equals("close") && args == null) {
-        for (AutoCloseable closeable : closeables) {
+        closeAll();
+      }
+      try {
+        return method.invoke(stream, args);
+      } catch(Throwable t) {
+        closeAll();
+        throw t;
+      }
+    }
+
+    private void closeAll() {
+      for (AutoCloseable closeable : closeables) {
+        try {
           closeable.close();
+        } catch(Throwable t) {
+          // For now, ignore. Should add logging
         }
       }
-      return method.invoke(stream, args);
     }
 
   }

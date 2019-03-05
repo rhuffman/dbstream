@@ -116,6 +116,28 @@ class ResultSetIteratorTest extends Specification {
     iterator.hasNext()
   }
 
+  def "test SQLException thrown by next"() {
+    given: "One row"
+    insert("Pig", 1)
+
+    and: "A ResultSet that returns the row"
+    def connection = dataSource.connection
+    def statement = connection.prepareStatement("SELECT * FROM Foo")
+    def resultSet = statement.executeQuery()
+    resultSet.next()
+
+    and: "A RowHandler that throws an exception"
+    def sqlException = new SQLException("test excetion")
+    def handler = new ThrowingHandler(sqlException)
+
+    when:
+    new ResultSetIterator(resultSet, handler).next()
+
+    then:
+    def e = thrown(RuntimeException)
+    e.cause.is(sqlException)
+  }
+
 
   def insert(String column1, int column2) {
     queryRunner.update("INSERT INTO Foo VALUES (?,?)", [column1, column2] as Object[])
@@ -125,6 +147,20 @@ class ResultSetIteratorTest extends Specification {
     @Override
     Row handleRow(ResultSet resultSet) throws SQLException {
       return new Row(resultSet.getString(1), resultSet.getInt(2))
+    }
+  }
+
+  static class ThrowingHandler implements RowHandler<Row> {
+
+    private SQLException exceptionToThrow
+
+    ThrowingHandler(SQLException exceptionToThrow) {
+      this.exceptionToThrow = exceptionToThrow
+    }
+
+    @Override
+    Row handleRow(ResultSet resultSet) throws SQLException {
+      throw exceptionToThrow
     }
   }
 

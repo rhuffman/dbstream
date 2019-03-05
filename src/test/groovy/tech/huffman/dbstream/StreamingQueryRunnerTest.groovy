@@ -23,6 +23,7 @@ import spock.lang.Unroll
 import java.lang.reflect.Proxy
 import java.sql.Connection
 import java.sql.ResultSet
+import java.sql.SQLException
 import java.sql.Statement
 import java.util.stream.Collectors
 
@@ -151,6 +152,39 @@ class StreamingQueryRunnerTest extends Specification {
     cleanup:
     stream?.close()
     connection?.close()
+  }
+
+  def "test database objects are closed when SQLException is thrown"() {
+    given: "A StreamingResultSetHandler that throws an SQLException"
+    def throwingHandler = new StreamingResultSetHandler() {
+      @Override
+      protected Object handleRow(ResultSet rs) throws SQLException {
+        throw new SQLException("test SQLException")
+      }
+    }
+
+    and: "One row in the table"
+    queryRunner.execute("INSERT INTO FOO VALUES (?, ?)", "Pig", 42)
+
+    and: "A stream proxy that uses the throwing handler"
+    def stream = queryRunner.queryAsStream("SELECT NUMBER FROM Foo", throwingHandler)
+
+    and: "That stream's Invocationhandler"
+    def invocationHandler = Proxy.getInvocationHandler(stream) as StreamingQueryRunner.StreamProxyInvocationHandler
+
+    when:
+    stream.collect(Collectors.toList())
+
+    then:
+    def e = thrown(RuntimeException)
+    invocationHandler.closeables.length == 3
+    invocationHandler.closeables.find { it instanceof Connection }.isClosed()
+    invocationHandler.closeables.find { it instanceof Statement }.isClosed()
+    invocationHandler.closeables.find { it instanceof ResultSet }.isClosed()
+
+
+    cleanup:
+    stream?.close()
   }
 
   static class Animal {
