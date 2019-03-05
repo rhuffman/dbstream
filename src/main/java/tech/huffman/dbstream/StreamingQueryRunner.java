@@ -51,8 +51,15 @@ public class StreamingQueryRunner extends QueryRunner {
    */
   public <T> Stream<T> queryAsStream(String sql, StreamingResultSetHandler<T> handler, Object... args)
       throws SQLException {
+    // We cannot use try-with-resources: if there is no exception the Connection, PreparedStatement,
+    // and ResultSet must remain open.
     Connection connection = getDataSource().getConnection();
-    return query(connection, true, sql, handler, args);
+    try {
+      return query(connection, true, sql, handler, args);
+    } catch (SQLException | RuntimeException | Error e) {
+      closeQuietly(connection);
+      throw e;
+    }
   }
 
   /**
@@ -87,20 +94,44 @@ public class StreamingQueryRunner extends QueryRunner {
       StreamingResultSetHandler<T> handler,
       Object... args)
       throws SQLException {
-    PreparedStatement statement = connection.prepareStatement(sql);
-    fillStatement(statement, args);
-    ResultSet resultSet = statement.executeQuery();
-    Stream<T> stream = handler.handle(resultSet);
+    // We cannot use try-with-resources: if there is no exception the Connection, PreparedStatement,
+    // and ResultSet must remain open.
+    PreparedStatement statement = null;
+    ResultSet resultSet = null;
+    Stream<T> stream = null;
 
-    StreamProxyInvocationHandler invocationHandler = closeConnection ?
-        new StreamProxyInvocationHandler(stream, connection, statement, resultSet) :
-        new StreamProxyInvocationHandler(stream, statement, resultSet);
+    try {
+      statement = connection.prepareStatement(sql);
 
-    //noinspection unchecked
-    return (Stream<T>) Proxy.newProxyInstance(
-        handler.getClass().getClassLoader(),
-        new Class[]{Stream.class},
-        invocationHandler);
+      fillStatement(statement, args);
+      resultSet = statement.executeQuery();
+      stream = handler.handle(resultSet);
+
+      StreamProxyInvocationHandler invocationHandler = closeConnection ?
+          new StreamProxyInvocationHandler(stream, connection, statement, resultSet) :
+          new StreamProxyInvocationHandler(stream, statement, resultSet);
+
+      //noinspection unchecked
+      return (Stream<T>) Proxy.newProxyInstance(
+          handler.getClass().getClassLoader(),
+          new Class[]{Stream.class},
+          invocationHandler);
+    } catch (SQLException | RuntimeException | Error e) {
+      closeQuietly(stream);
+      closeQuietly(resultSet);
+      closeQuietly(statement);
+      throw e;
+    }
+  }
+
+  private static void closeQuietly(AutoCloseable closeable) {
+    if (closeable != null) {
+      try {
+        closeable.close();
+      } catch (Throwable t) {
+        // Ignore for now. Perhaps I should add logging, but this replicates what DbUtils.closeQuietly does
+      }
+    }
   }
 
   /**
@@ -128,23 +159,19 @@ public class StreamingQueryRunner extends QueryRunner {
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
       // If the method is "close()", then close all the Closeables
       if (method.getName().equals("close") && args == null) {
-        closeAll();
+        closeAllQuietly();
       }
       try {
         return method.invoke(stream, args);
-      } catch(Throwable t) {
-        closeAll();
+      } catch (Throwable t) {
+        closeAllQuietly();
         throw t;
       }
     }
 
-    private void closeAll() {
+    private void closeAllQuietly() {
       for (AutoCloseable closeable : closeables) {
-        try {
-          closeable.close();
-        } catch(Throwable t) {
-          // For now, ignore. Should add logging
-        }
+        closeQuietly(closeable);
       }
     }
 
