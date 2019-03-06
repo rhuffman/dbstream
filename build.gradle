@@ -17,3 +17,9 @@ dependencies {
     testImplementation 'org.spockframework:spock-core:1.2-groovy-2.5'
 }
 
+test {
+    testLogging {
+        events 'passed', 'failed', 'skipped'
+    }
+}
+
