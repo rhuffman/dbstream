@@ -14,11 +14,11 @@ The advantage of using a Stream is that we can take advantage of database cursor
 Unfortunately, the query methods in DbUtils QueryRunner cannot be used. This is because those methods create and close the Connection, PreparedStatement, and ResultSet that are used to query the database. So the library also provides an extension of QueryRunner, StreamingQueryRunner, that adds these additional methods: 
 
 ```java
-    public <T> Stream<T> queryAsStream(
+    public <T> Stream<T> queryStream(
         String sql, StreamingResultSetHandler<T> handler, Object... args)
         throws SQLException;
 
-    public <T> Stream<T> queryAsStream(
+    public <T> Stream<T> queryStream(
         Connection connection, String sql, StreamingResultSetHandler<T> handler, Object... args)
         throws SQLException;
 

@@ -49,7 +49,7 @@ public class StreamingQueryRunner extends QueryRunner {
    * @param handler The ResultSetHandler that converts the ResultSet to a Stream
    * @param args    The arguments to pass to the query as prepared statement parameters
    */
-  public <T> Stream<T> queryAsStream(String sql, StreamingResultSetHandler<T> handler, Object... args)
+  public <T> Stream<T> queryStream(String sql, StreamingResultSetHandler<T> handler, Object... args)
       throws SQLException {
     // We cannot use try-with-resources: if there is no exception the Connection, PreparedStatement,
     // and ResultSet must remain open.
@@ -72,7 +72,7 @@ public class StreamingQueryRunner extends QueryRunner {
    * @param handler    The ResultSetHandler that converts the ResultSet to a Stream
    * @param args       The arguments to pass to the query as prepared statement parameters
    */
-  public <T> Stream<T> queryAsStream(
+  public <T> Stream<T> queryStream(
       Connection connection, String sql, StreamingResultSetHandler<T> handler, Object... args)
       throws SQLException {
     return query(connection, false, sql, handler, args);

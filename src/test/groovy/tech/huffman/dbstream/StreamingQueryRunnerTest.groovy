@@ -51,12 +51,32 @@ class StreamingQueryRunnerTest extends Specification {
   }
 
   @Unroll
-  def "test with empty result set: #handlerType"() {
+  def "test stream count with empty result set: #handlerType"() {
     when:
-    def stream = queryRunner.queryAsStream("SELECT NAME, NUMBER FROM Foo", handler)
+    def stream = queryRunner.queryStream("SELECT NAME, NUMBER FROM Foo", handler)
 
     then:
     stream.count() == 0
+
+    cleanup:
+    stream?.close()
+
+    where:
+    handler      | _
+    arrayHandler | _
+    mapHandler   | _
+    beanHandler  | _
+
+    handlerType = handler.class.simpleName
+  }
+
+  @Unroll
+  def "test stream iteration with empty result set: #handlerType"() {
+    when:
+    def stream = queryRunner.queryStream("SELECT NAME, NUMBER FROM Foo", handler)
+
+    then:
+    stream.each {}
 
     cleanup:
     stream?.close()
@@ -76,7 +96,7 @@ class StreamingQueryRunnerTest extends Specification {
     queryRunner.execute("INSERT INTO FOO VALUES (?, ?)", "Pig", 42)
 
     when:
-    def stream = queryRunner.queryAsStream("SELECT NAME, NUMBER FROM Foo", handler)
+    def stream = queryRunner.queryStream("SELECT NAME, NUMBER FROM Foo", handler)
 
     then:
     stream.collect(Collectors.toList()) == [expected]
@@ -101,7 +121,7 @@ class StreamingQueryRunnerTest extends Specification {
     queryRunner.execute("INSERT INTO FOO VALUES (?, ?)", "Dog", 92)
 
     when:
-    def stream = queryRunner.queryAsStream("SELECT NAME, NUMBER FROM Foo", handler)
+    def stream = queryRunner.queryStream("SELECT NAME, NUMBER FROM Foo", handler)
 
     then:
     stream.collect(Collectors.toList()) == expected
@@ -122,7 +142,7 @@ class StreamingQueryRunnerTest extends Specification {
 
   def "test closing stream closes database objects"() {
     when:
-    def stream = queryRunner.queryAsStream("SELECT NUMBER FROM Foo", arrayHandler)
+    def stream = queryRunner.queryStream("SELECT NUMBER FROM Foo", arrayHandler)
     def invocationHandler = Proxy.getInvocationHandler(stream) as StreamingQueryRunner.StreamProxyInvocationHandler
     stream.close()
 
@@ -139,7 +159,7 @@ class StreamingQueryRunnerTest extends Specification {
   def "test connection is not closed when passed to the QueryRunner"() {
     when:
     def connection = dataSource.getConnection()
-    def stream = queryRunner.queryAsStream(connection, "SELECT NUMBER FROM Foo", arrayHandler, null)
+    def stream = queryRunner.queryStream(connection, "SELECT NUMBER FROM Foo", arrayHandler, null)
     def invocationHandler = Proxy.getInvocationHandler(stream) as StreamingQueryRunner.StreamProxyInvocationHandler
     stream.close()
 
@@ -167,7 +187,7 @@ class StreamingQueryRunnerTest extends Specification {
     queryRunner.execute("INSERT INTO FOO VALUES (?, ?)", "Pig", 42)
 
     and: "A stream proxy that uses the throwing handler"
-    def stream = queryRunner.queryAsStream("SELECT NUMBER FROM Foo", throwingHandler)
+    def stream = queryRunner.queryStream("SELECT NUMBER FROM Foo", throwingHandler)
 
     and: "That stream's Invocationhandler"
     def invocationHandler = Proxy.getInvocationHandler(stream) as StreamingQueryRunner.StreamProxyInvocationHandler
