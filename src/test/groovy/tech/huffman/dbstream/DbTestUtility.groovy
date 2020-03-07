@@ -24,7 +24,7 @@ class DbTestUtility {
 
   DataSource dataSource = createDataSource()
 
-  DataSource createDataSource() {
+  static DataSource createDataSource() {
     def dataSource = new JdbcDataSource()
     dataSource.setURL("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1")
     dataSource.setUser("sa")

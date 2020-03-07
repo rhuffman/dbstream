@@ -27,9 +27,11 @@ import java.sql.SQLException
 import java.sql.Statement
 import java.util.stream.Collectors
 
+import static tech.huffman.dbstream.DbTestUtility.createDataSource
+
 class StreamingQueryRunnerTest extends Specification {
 
-  def dataSource = new DbTestUtility().createDataSource()
+  def dataSource = createDataSource()
 
   def queryRunner = new StreamingQueryRunner(dataSource)
 
@@ -140,6 +142,7 @@ class StreamingQueryRunnerTest extends Specification {
     handlerType = handler.class.simpleName
   }
 
+  @SuppressWarnings("GroovyAccessibility")
   def "test closing stream closes database objects"() {
     when:
     def stream = queryRunner.queryStream("SELECT NUMBER FROM Foo", arrayHandler)
@@ -156,6 +159,7 @@ class StreamingQueryRunnerTest extends Specification {
     stream?.close()
   }
 
+  @SuppressWarnings("GroovyAccessibility")
   def "test connection is not closed when passed to the QueryRunner"() {
     when:
     def connection = dataSource.getConnection()
@@ -174,6 +178,7 @@ class StreamingQueryRunnerTest extends Specification {
     connection?.close()
   }
 
+  @SuppressWarnings("GroovyAccessibility")
   def "test database objects are closed when SQLException is thrown"() {
     given: "A StreamingResultSetHandler that throws an SQLException"
     def throwingHandler = new StreamingResultSetHandler() {
@@ -196,7 +201,7 @@ class StreamingQueryRunnerTest extends Specification {
     stream.collect(Collectors.toList())
 
     then:
-    def e = thrown(RuntimeException)
+    thrown(RuntimeException)
     invocationHandler.closeables.length == 3
     invocationHandler.closeables.find { it instanceof Connection }.isClosed()
     invocationHandler.closeables.find { it instanceof Statement }.isClosed()
@@ -238,7 +243,7 @@ class StreamingQueryRunnerTest extends Specification {
       return "Animal{" +
           "name='" + name + '\'' +
           ", number=" + number +
-          '}';
+          '}'
     }
   }
 

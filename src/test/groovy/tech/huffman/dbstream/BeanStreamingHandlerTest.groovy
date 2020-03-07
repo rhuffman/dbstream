@@ -20,9 +20,11 @@ import spock.lang.Specification
 
 import javax.sql.DataSource
 
+import static tech.huffman.dbstream.DbTestUtility.createDataSource
+
 class BeanStreamingHandlerTest extends Specification {
 
-  DataSource dataSource = new DbTestUtility().createDataSource()
+  DataSource dataSource = createDataSource()
 
   StreamingQueryRunner queryRunner = new StreamingQueryRunner(dataSource)
 
@@ -48,6 +50,11 @@ class BeanStreamingHandlerTest extends Specification {
     def actual = handler.handleRow(resultSet)
     actual.name == 'Pig'
     actual.count == 42
+
+    cleanup:
+    resultSet?.close()
+    statement?.close()
+    connection?.close()
   }
 
   static class Animal {
