@@ -19,8 +19,6 @@ package tech.huffman.dbstream;
 import org.apache.commons.dbutils.QueryRunner;
 
 import javax.sql.DataSource;
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -56,7 +54,7 @@ public class StreamingQueryRunner extends QueryRunner {
     try {
       return query(connection, true, sql, handler, args);
     } catch (SQLException | RuntimeException | Error e) {
-      closeQuietly(connection);
+      closeUnchecked(connection);
       throw e;
     }
   }
@@ -100,19 +98,19 @@ public class StreamingQueryRunner extends QueryRunner {
       fillStatement(statement, args);
       ResultSet resultSet = statement.executeQuery();
       Stream<T> stream = handler.handle(resultSet)
-          .onClose(() -> closeQuietly(resultSet))
-          .onClose(() -> closeQuietly(statement));
+          .onClose(() -> closeUnchecked(resultSet))
+          .onClose(() -> closeUnchecked(statement));
       if (closeConnection) {
-        return stream.onClose(() -> closeQuietly(connection));
+        return stream.onClose(() -> closeUnchecked(connection));
       }
       return stream;
     } catch (SQLException | RuntimeException | Error e) {
-      closeQuietly(statement);
+      closeUnchecked(statement);
       throw e;
     }
   }
 
-  private static void closeQuietly(AutoCloseable closeable) {
+  private static void closeUnchecked(AutoCloseable closeable) {
     try {
       closeable.close();
     } catch (RuntimeException | Error e) {
