@@ -17,7 +17,6 @@
 package tech.huffman.dbstream
 
 import javax.sql.DataSource
-import java.sql.CallableStatement
 import java.sql.Connection
 import java.sql.SQLException
 import java.sql.Statement
@@ -30,16 +29,9 @@ class DataSourceProxy extends groovy.util.Proxy {
   }
 
   final List<Connection> connections = new ArrayList<>()
-  final List<Statement> statements = new ArrayList<>()
 
   Connection getConnection() throws SQLException {
     def connection = (adaptee as DataSource).getConnection()
-    connections.add(connection)
-    return connection
-  }
-
-  Connection getConnection(String username, String password) throws SQLException {
-    def connection = (adaptee as DataSource).getConnection(username, password)
     connections.add(connection)
     return connection
   }
@@ -48,13 +40,4 @@ class DataSourceProxy extends groovy.util.Proxy {
     connections.clear()
   }
 
-  class ConnectionProxy extends groovy.util.Proxy {
-
-    Statement prepareStatement(int resultSetType, int resultSetConcurrency) {
-      def statement = (adaptee as Connection).createStatement(resultSetType, resultSetConcurrency)
-      statements.add(statement)
-      return statement
-    }
-
-  }
 }

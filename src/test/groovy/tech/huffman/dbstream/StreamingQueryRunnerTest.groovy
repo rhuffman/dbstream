@@ -139,10 +139,16 @@ class StreamingQueryRunnerTest extends Specification {
   }
 
   @SuppressWarnings("GroovyAccessibility")
-  def "test closing stream closes database objects"() {
+  def "test closing stream closes database connection"() {
     when:
     dataSource.reset()
     def stream = queryRunner.queryStream("SELECT NUMBER FROM Foo", arrayHandler)
+
+    then:
+    dataSource.connections.size() == 1
+    !dataSource.connections[0].isClosed()
+
+    when:
     stream.close()
 
     then:
@@ -166,11 +172,6 @@ class StreamingQueryRunnerTest extends Specification {
     cleanup:
     stream?.close()
     connection?.close()
-  }
-
-  @SuppressWarnings("GroovyAccessibility")
-  def "test database objects are closed when SQLException is thrown"() {
-    // TODO: implement this test
   }
 
   static class Animal {
