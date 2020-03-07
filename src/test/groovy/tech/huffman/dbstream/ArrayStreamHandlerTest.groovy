@@ -26,9 +26,11 @@ import java.sql.Statement
 import java.util.stream.Collectors
 import java.util.stream.Stream
 
+import static tech.huffman.dbstream.DbTestUtility.createDataSource
+
 class ArrayStreamHandlerTest extends Specification {
 
-  DataSource dataSource = new DbTestUtility().createDataSource()
+  DataSource dataSource = createDataSource()
 
   StreamingQueryRunner queryRunner = new StreamingQueryRunner(dataSource)
 
@@ -52,6 +54,11 @@ class ArrayStreamHandlerTest extends Specification {
     expect:
     resultSet.next()
     handler.handleRow(resultSet) == ["Pig", 42] as Object[]
+
+    cleanup:
+    resultSet?.close()
+    statement?.close()
+    connection?.close()
   }
 
 }

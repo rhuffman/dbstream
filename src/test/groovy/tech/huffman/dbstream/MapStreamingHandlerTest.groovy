@@ -20,9 +20,11 @@ import spock.lang.Specification
 
 import javax.sql.DataSource
 
+import static tech.huffman.dbstream.DbTestUtility.createDataSource
+
 class MapStreamingHandlerTest extends Specification {
 
-  DataSource dataSource = new DbTestUtility().createDataSource()
+  DataSource dataSource = createDataSource()
 
   StreamingQueryRunner queryRunner = new StreamingQueryRunner(dataSource)
 
@@ -46,6 +48,11 @@ class MapStreamingHandlerTest extends Specification {
     expect:
     resultSet.next()
     handler.handleRow(resultSet) == [NAME: "Pig", COUNT: 42]
+
+    cleanup:
+    resultSet?.close()
+    statement?.close()
+    connection?.close()
   }
 
 }

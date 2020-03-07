@@ -20,18 +20,16 @@ import spock.lang.Shared
 import spock.lang.Specification
 import spock.lang.Unroll
 
-import java.lang.reflect.Proxy
-import java.sql.Connection
-import java.sql.ResultSet
-import java.sql.SQLException
-import java.sql.Statement
+import javax.sql.DataSource
 import java.util.stream.Collectors
+
+import static tech.huffman.dbstream.DbTestUtility.createDataSource
 
 class StreamingQueryRunnerTest extends Specification {
 
-  def dataSource = new DbTestUtility().createDataSource()
+  def dataSource = DataSourceProxy.proxyDataSource(createDataSource())
 
-  def queryRunner = new StreamingQueryRunner(dataSource)
+  def queryRunner = new StreamingQueryRunner(dataSource as DataSource)
 
   @Shared
   def arrayHandler = new ArrayStreamingHandler()
@@ -140,71 +138,40 @@ class StreamingQueryRunnerTest extends Specification {
     handlerType = handler.class.simpleName
   }
 
-  def "test closing stream closes database objects"() {
+  @SuppressWarnings("GroovyAccessibility")
+  def "test closing stream closes database connection"() {
     when:
+    dataSource.reset()
     def stream = queryRunner.queryStream("SELECT NUMBER FROM Foo", arrayHandler)
-    def invocationHandler = Proxy.getInvocationHandler(stream) as StreamingQueryRunner.StreamProxyInvocationHandler
+
+    then:
+    dataSource.connections.size() == 1
+    !dataSource.connections[0].isClosed()
+
+    when:
     stream.close()
 
     then:
-    invocationHandler.closeables.length == 3
-    invocationHandler.closeables.find { it instanceof Connection }.isClosed()
-    invocationHandler.closeables.find { it instanceof Statement }.isClosed()
-    invocationHandler.closeables.find { it instanceof ResultSet }.isClosed()
+    dataSource.connections.size() == 1
+    dataSource.connections[0].isClosed()
 
     cleanup:
     stream?.close()
   }
 
+  @SuppressWarnings("GroovyAccessibility")
   def "test connection is not closed when passed to the QueryRunner"() {
     when:
     def connection = dataSource.getConnection()
     def stream = queryRunner.queryStream(connection, "SELECT NUMBER FROM Foo", arrayHandler, null)
-    def invocationHandler = Proxy.getInvocationHandler(stream) as StreamingQueryRunner.StreamProxyInvocationHandler
     stream.close()
 
     then:
     !connection.isClosed()
-    invocationHandler.closeables.length == 2
-    invocationHandler.closeables.find { it instanceof Statement }.isClosed()
-    invocationHandler.closeables.find { it instanceof ResultSet }.isClosed()
 
     cleanup:
     stream?.close()
     connection?.close()
-  }
-
-  def "test database objects are closed when SQLException is thrown"() {
-    given: "A StreamingResultSetHandler that throws an SQLException"
-    def throwingHandler = new StreamingResultSetHandler() {
-      @Override
-      protected Object handleRow(ResultSet rs) throws SQLException {
-        throw new SQLException("test SQLException")
-      }
-    }
-
-    and: "One row in the table"
-    queryRunner.execute("INSERT INTO FOO VALUES (?, ?)", "Pig", 42)
-
-    and: "A stream proxy that uses the throwing handler"
-    def stream = queryRunner.queryStream("SELECT NUMBER FROM Foo", throwingHandler)
-
-    and: "That stream's Invocationhandler"
-    def invocationHandler = Proxy.getInvocationHandler(stream) as StreamingQueryRunner.StreamProxyInvocationHandler
-
-    when:
-    stream.collect(Collectors.toList())
-
-    then:
-    def e = thrown(RuntimeException)
-    invocationHandler.closeables.length == 3
-    invocationHandler.closeables.find { it instanceof Connection }.isClosed()
-    invocationHandler.closeables.find { it instanceof Statement }.isClosed()
-    invocationHandler.closeables.find { it instanceof ResultSet }.isClosed()
-
-
-    cleanup:
-    stream?.close()
   }
 
   static class Animal {
@@ -238,7 +205,7 @@ class StreamingQueryRunnerTest extends Specification {
       return "Animal{" +
           "name='" + name + '\'' +
           ", number=" + number +
-          '}';
+          '}'
     }
   }
 

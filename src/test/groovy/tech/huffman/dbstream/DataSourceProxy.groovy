@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Robert Huffman
+ * Copyright 2020 Robert Huffman
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,21 +16,28 @@
 
 package tech.huffman.dbstream
 
-import org.h2.jdbcx.JdbcDataSource
-
 import javax.sql.DataSource
+import java.sql.Connection
+import java.sql.SQLException
+import java.sql.Statement
 
-class DbTestUtility {
+@SuppressWarnings("unused")
+class DataSourceProxy extends groovy.util.Proxy {
 
-  DataSource dataSource = createDataSource()
-
-  static DataSource createDataSource() {
-    def dataSource = new JdbcDataSource()
-    dataSource.setURL("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1")
-    dataSource.setUser("sa")
-    dataSource.setPassword("sa")
-    return dataSource
+  static DataSourceProxy proxyDataSource(DataSource dataSource) {
+    return new DataSourceProxy().wrap(dataSource) as DataSourceProxy
   }
 
+  final List<Connection> connections = new ArrayList<>()
+
+  Connection getConnection() throws SQLException {
+    def connection = (adaptee as DataSource).getConnection()
+    connections.add(connection)
+    return connection
+  }
+
+  void reset() {
+    connections.clear()
+  }
 
 }

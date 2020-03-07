@@ -19,9 +19,6 @@ package tech.huffman.dbstream;
 import org.apache.commons.dbutils.QueryRunner;
 
 import javax.sql.DataSource;
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -57,7 +54,7 @@ public class StreamingQueryRunner extends QueryRunner {
     try {
       return query(connection, true, sql, handler, args);
     } catch (SQLException | RuntimeException | Error e) {
-      closeQuietly(connection);
+      closeUnchecked(connection);
       throw e;
     }
   }
@@ -94,87 +91,32 @@ public class StreamingQueryRunner extends QueryRunner {
       StreamingResultSetHandler<T> handler,
       Object... args)
       throws SQLException {
-    // We cannot use try-with-resources: if there is no exception the Connection, PreparedStatement,
+    // We cannot use try-with-resources: if there is no exception the PreparedStatement
     // and ResultSet must remain open.
-    PreparedStatement statement = null;
-    ResultSet resultSet = null;
-    Stream<T> stream = null;
-
+    PreparedStatement statement = connection.prepareStatement(sql);
     try {
-      statement = connection.prepareStatement(sql);
-
       fillStatement(statement, args);
-      resultSet = statement.executeQuery();
-      stream = handler.handle(resultSet);
-
-      StreamProxyInvocationHandler invocationHandler = closeConnection ?
-          new StreamProxyInvocationHandler(stream, connection, statement, resultSet) :
-          new StreamProxyInvocationHandler(stream, statement, resultSet);
-
-      //noinspection unchecked
-      return (Stream<T>) Proxy.newProxyInstance(
-          handler.getClass().getClassLoader(),
-          new Class[]{Stream.class},
-          invocationHandler);
+      ResultSet resultSet = statement.executeQuery();
+      Stream<T> stream = handler.handle(resultSet)
+          .onClose(() -> closeUnchecked(resultSet))
+          .onClose(() -> closeUnchecked(statement));
+      if (closeConnection) {
+        return stream.onClose(() -> closeUnchecked(connection));
+      }
+      return stream;
     } catch (SQLException | RuntimeException | Error e) {
-      closeQuietly(stream);
-      closeQuietly(resultSet);
-      closeQuietly(statement);
+      closeUnchecked(statement);
       throw e;
     }
   }
 
-  private static void closeQuietly(AutoCloseable closeable) {
-    if (closeable != null) {
-      try {
-        closeable.close();
-      } catch (Throwable t) {
-        // Ignore for now. Perhaps I should add logging, but this replicates what DbUtils.closeQuietly does
-      }
+  private static void closeUnchecked(AutoCloseable closeable) {
+    try {
+      closeable.close();
+    } catch (RuntimeException | Error e) {
+      throw e;
+    } catch (Exception e) {
+      throw new RuntimeException(e);
     }
   }
-
-  /**
-   * An InvocationHandler for a Stream Proxy that delegates all methods to a given
-   * Stream and will close additional objects when the stream is closed.
-   */
-  static class StreamProxyInvocationHandler implements InvocationHandler {
-
-    /**
-     * The Stream to which all methods are delegated
-     */
-    private final Stream<?> stream;
-
-    /**
-     * Additional AutoCloseables that will be closed when the stream is closed
-     */
-    private final AutoCloseable[] closeables;
-
-    StreamProxyInvocationHandler(Stream<?> stream, AutoCloseable... closeables) {
-      this.stream = stream;
-      this.closeables = closeables;
-    }
-
-    @Override
-    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-      // If the method is "close()", then close all the Closeables
-      if (method.getName().equals("close") && args == null) {
-        closeAllQuietly();
-      }
-      try {
-        return method.invoke(stream, args);
-      } catch (Throwable t) {
-        closeAllQuietly();
-        throw t;
-      }
-    }
-
-    private void closeAllQuietly() {
-      for (AutoCloseable closeable : closeables) {
-        closeQuietly(closeable);
-      }
-    }
-
-  }
-
 }
