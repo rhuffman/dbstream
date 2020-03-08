@@ -114,6 +114,11 @@ class ResultSetIteratorTest extends Specification {
     then:
     iterator.hasNext()
     iterator.hasNext()
+
+    cleanup:
+    resultSet?.close()
+    statement?.close()
+    connection?.close()
   }
 
   def "test SQLException thrown by next"() {
@@ -136,6 +141,11 @@ class ResultSetIteratorTest extends Specification {
     then:
     def e = thrown(RuntimeException)
     e.cause.is(sqlException)
+
+    cleanup:
+    resultSet?.close()
+    statement?.close()
+    connection?.close()
   }
 
 
